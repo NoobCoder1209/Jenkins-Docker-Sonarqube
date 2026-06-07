@@ -28,7 +28,12 @@ services:
     networks: [cicd]
 
   sonarqube:
-    image: sonarqube:lts-community
+    # Pinned to a concrete community-edition tag (no shorthand-major tag like
+    # `25-community` exists on Docker Hub — only the rolling `community` tag
+    # and full triplets). The previous `lts-community` was pinned to v9.9
+    # which is no longer supported (UI showed a "NO LONGER ACTIVE" banner).
+    # Bump intentionally when SonarSource publishes a newer release.
+    image: sonarqube:26.6.0.123539-community
     container_name: jds-sonarqube
     restart: unless-stopped
     depends_on:
@@ -60,7 +65,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 30
-      start_period: 90s
+      start_period: 180s
     networks: [cicd]
 
   jenkins:
