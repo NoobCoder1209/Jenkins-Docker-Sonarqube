@@ -2,18 +2,13 @@ FROM jenkins/jenkins:lts
 
 USER root
 
-# Docker CLI (the daemon comes from the host via /var/run/docker.sock bind-mount)
-# and curl for the SonarQube health/webhook calls inside Jenkinsfile if needed.
+# Docker CLI (the daemon comes from the host via /var/run/docker.sock bind-mount),
+# curl for any inline webhook calls, and a Python toolchain so the Jenkinsfile can
+# run pytest/ruff directly on the controller (single-node demo — no agent pool).
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         docker.io \
         curl \
- && rm -rf /var/lib/apt/lists/*
-
-# Python toolchain so the Jenkinsfile can run pytest/ruff directly on the controller.
-# (Single-node demo — no agent pool to dispatch to.)
-RUN apt-get update \
- && apt-get install -y --no-install-recommends \
         python3 \
         python3-venv \
         python3-pip \

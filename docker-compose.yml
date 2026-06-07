@@ -75,9 +75,7 @@ services:
         condition: service_healthy
     user: root  # demo-only — needed to access the host docker socket
     environment:
-      JAVA_OPTS: >-
-        -Djenkins.install.runSetupWizard=false
-        -Dpermissive-script-security.enabled=no_security
+      JAVA_OPTS: -Djenkins.install.runSetupWizard=false
       CASC_JENKINS_CONFIG: /usr/share/jenkins/ref/casc_configs/jenkins.yaml
       JENKINS_ADMIN_PASSWORD: admin                                   # demo-only
       SONARQUBE_TOKEN: ${SONARQUBE_TOKEN:-changeme}                   # generated from the SonarQube UI; see README
@@ -97,6 +95,9 @@ services:
     networks: [cicd]
 
   bootstrap:
+    # Deliberately NOT a depends_on of `jenkins`: the webhook only needs to
+    # exist by the time the first build is triggered, not at Jenkins startup.
+    # Coupling the two would create a hard ordering constraint with no benefit.
     image: curlimages/curl:8.10.1
     container_name: jds-bootstrap
     depends_on:
