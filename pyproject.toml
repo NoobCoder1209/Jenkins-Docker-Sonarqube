@@ -1,0 +1,19 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F are ruff defaults; T (flake8-print) and PLR (pylint-refactor) are added
+# so the intentional Sonar-seeding code in app/routes.py:info() actually trips
+# ruff locally — making the `# noqa: T201,PLR0915` suppressions meaningful.
+select = ["E", "F", "I", "B", "T", "PLR"]
+ignore = [
+    "PLR0913",  # too-many-arguments — not relevant for this demo
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004"]  # magic numbers in assertions are fine in tests
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
