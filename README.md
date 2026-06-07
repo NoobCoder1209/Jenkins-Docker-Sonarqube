@@ -23,7 +23,7 @@ flowchart LR
     dev[developer<br/>git push] --> jenkins[Jenkins<br/>seed pipeline]
     jenkins -->|venv + ruff| lint[Lint]
     lint --> tests[Test<br/>pytest --cov]
-    tests -->|coverage.xml| sonar[SonarQube<br/>analysis]
+    tests -->|coverage.xml| sonar[SonarQube<br/>Analysis]
     sonar -->|webhook| gate{Quality<br/>Gate}
     gate -->|pass| build[Build<br/>Docker image]
     gate -->|fail| stop([pipeline aborts])
