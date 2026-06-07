@@ -81,6 +81,15 @@ These are load-bearing — surface them **before any code is written**:
 6. **`sonar-project.properties`** — project key, sources, exclusions, language settings.
 7. **README** — what each service does, how to run, default credentials, screenshots, troubleshooting.
 
+## Production hygiene (must apply, not optional)
+
+Inherits the master plan's "Production hygiene checklist." Repo-specific application:
+
+- **No real secrets in compose or Jenkins config.** Demo credentials clearly marked `demo-only`. Anything resembling a real key is gitignored. README points future users at proper credential providers.
+- **Pydantic input validation on the demo Flask app's routes.** Bad input → 400 JSON, never a stack trace. (Same pattern as `DevOpsCourse`.)
+- **Global Flask error handler returning generic JSON.** No tracebacks in HTTP responses.
+- **Sonar quality gate enforcement is the safety net.** The Jenkinsfile's "Quality Gate" stage uses `waitForQualityGate abortPipeline: true`. If Sonar finds critical issues, the pipeline fails — that's the demo.
+
 ## Out of scope
 
 - No external CI (GitHub Actions stays out — point of this repo is self-hosted Jenkins)
@@ -236,6 +245,8 @@ PR `rebuild/v1` → `main`. Capture screenshots after a green pipeline run. Topi
 - [ ] No SAP-internal references; no `~/.claude/` references
 - [ ] Topics + description set
 - [ ] Default branch description aligned with the rebuild
+- [ ] Demo Flask app: bad payload returns 400 JSON, not an HTML stack trace
+- [ ] Demo credentials clearly marked `demo-only` in README and compose
 
 ## Stretch (defer)
 
