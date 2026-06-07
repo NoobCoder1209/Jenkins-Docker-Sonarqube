@@ -24,7 +24,7 @@ flowchart LR
     jenkins -->|venv + ruff| lint[Lint]
     lint --> tests[Test<br/>pytest --cov]
     tests -->|coverage.xml| sonar[SonarQube<br/>analysis]
-    sonar -->|webhook| gate{Quality<br/>gate}
+    sonar -->|webhook| gate{Quality<br/>Gate}
     gate -->|pass| build[Build<br/>Docker image]
     gate -->|fail| stop([pipeline aborts])
 ```
@@ -60,7 +60,8 @@ Wait until all services are healthy:
 
 ```bash
 docker compose ps
-# postgres, sonarqube, jenkins should all show (healthy)
+# postgres, sonarqube, jenkins should all show (healthy);
+# bootstrap will show Exited (0) once it has registered the webhook — that's expected.
 docker compose logs bootstrap     # should show "webhook created" or "already exists"
 ```
 
@@ -80,11 +81,16 @@ ships with a placeholder (`changeme`); rotate it once after the first boot:
    prompted.
 2. **My Account → Security → Generate Tokens.** Type=`User Token` (or
    `Project Analysis Token` scoped to `jenkins-docker-sonarqube`). Copy the token.
-3. Drop it into a local `.env` (gitignored) at the repo root:
+3. Drop them into a local `.env` (gitignored) at the repo root:
    ```bash
-   echo "SONARQUBE_TOKEN=squ_xxxxxxxxxxxxxxxxxxxxxxxxxx" >> .env
-   echo "SONARQUBE_ADMIN_PASSWORD=<your-new-sonar-admin-password>" >> .env
+   cat > .env <<'EOF'
+   SONARQUBE_TOKEN=squ_xxxxxxxxxxxxxxxxxxxxxxxxxx
+   SONARQUBE_ADMIN_PASSWORD=<your-new-sonar-admin-password>
+   EOF
    ```
+   > **Important:** if you changed the Sonar admin password in step 1, you
+   > **must** include `SONARQUBE_ADMIN_PASSWORD` in `.env`. Otherwise the
+   > `bootstrap` container will 401 on its next run and exit early.
 4. Make Jenkins pick up the new credential value by recreating the container:
    ```bash
    docker compose up -d --force-recreate jenkins
@@ -170,17 +176,25 @@ rebuilds and re-bootstraps. You will need to rotate the Sonar token again.
 
 ## Verifying the quality-gate actually works
 
-To confirm the gate enforces what it claims, push a deliberate Sonar violation
-and watch the build go red. The intentional findings already in `app/routes.py`
-(long function, unused local, debug `print`) are low-severity — the default
-"Sonar way" gate ignores them. To trip the gate:
+To confirm the gate enforces what it claims, push a deliberate violation on a
+feature branch and watch the build go red. The intentional findings already in
+`app/routes.py` (long function, unused local, debug `print`) are low-severity —
+the default "Sonar way" gate ignores them.
 
-1. Add a `pass`-only function with cognitive complexity > 15 to `app/routes.py`,
-   or drop coverage below 80% by deleting tests for `/info`.
-2. Commit on a branch, push.
-3. Trigger the `demo` job. The `Quality Gate` stage will fail; the `Build Image`
-   stage never runs.
-4. Revert the change before merging anything anywhere real.
+The default **Sonar way** gate checks **new code only** and trips on any of:
+new-code coverage `< 80%`, new-code duplicated lines `> 3%`, security hotspots
+not 100% reviewed, or maintainability/reliability/security rating worse than A
+on new code.
+
+To trip it on purpose:
+
+1. On a feature branch, add a **new** function in `app/routes.py` with no
+   corresponding test (drops new-code coverage below 80%) **or** introduce an
+   obvious security hotspot, e.g. `eval(request.args.get("x"))` in a new route.
+2. Commit, push, trigger the `demo` job.
+3. The `Quality Gate` stage will fail; the `Build Image` stage never runs.
+4. Drop the demo branch (`git checkout main && git branch -D <branch>`) once
+   you've seen the red build.
 
 ## License
 
