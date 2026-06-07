@@ -4,6 +4,8 @@
 > fully reproducible via `docker compose up -d`. No cloud accounts, no manual UI clicks.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.12-3776AB)
+![Flask](https://img.shields.io/badge/flask-3-000000)
 ![Stack](https://img.shields.io/badge/stack-Jenkins%20%2B%20SonarQube%20%2B%20Docker-2496ED)
 ![Pipeline](https://img.shields.io/badge/pipeline--as--code-Jenkinsfile-D24939)
 ![Config](https://img.shields.io/badge/config--as--code-JCasC-D24939)
@@ -14,7 +16,7 @@
 | :--: | :--: |
 | ![Jenkins pipeline](docs/screenshots/jenkins-pipeline.png) | ![SonarQube dashboard](docs/screenshots/sonarqube-dashboard.png) |
 
-> Screenshots are captured during phase 5 of the rebuild against a fresh local stack.
+> Screenshots captured against a fresh local stack.
 
 ## Flow
 
@@ -50,6 +52,11 @@ flowchart LR
 
 ## Quick start
 
+> **Heads-up:** the seed pipeline needs a SonarQube auth token. On a fresh boot
+> SonarQube has none yet, so jump to [First-run workflow](#first-run-workflow)
+> after the stack is healthy and **before** clicking *Build Now* — otherwise the
+> SonarQube Analysis stage will 401.
+
 ```bash
 git clone https://github.com/NoobCoder1209/Jenkins-Docker-Sonarqube.git
 cd Jenkins-Docker-Sonarqube
@@ -59,9 +66,10 @@ docker compose up -d --build      # ~3–4 min on first boot (Sonar 26 + plugin 
 Wait until all services are healthy:
 
 ```bash
-docker compose ps
-# postgres, sonarqube, jenkins should all show (healthy);
-# bootstrap will show Exited (0) once it has registered the webhook — that's expected.
+docker compose ps -a
+# postgres, sonarqube, jenkins should all show (healthy).
+# bootstrap will show Exited (0) once it has registered the webhook — that's
+# expected; `-a` is needed because exited services are hidden by default.
 docker compose logs bootstrap     # should show "webhook created" or "already exists"
 ```
 
@@ -163,8 +171,8 @@ this in its embedded VM and needs no action.
 
 **Ports `8080` / `9000` already in use.**
 Edit the `ports:` mappings in `docker-compose.yml` to a free host port, e.g.
-`"18080:8080"`. Update the SonarQube webhook URL in
-`scripts/bootstrap-sonar-webhook.sh` if you also remap Jenkins.
+`"18080:8080"`. If you remap Jenkins, also update `JENKINS_WEBHOOK_URL` in the
+`bootstrap` service's environment in `docker-compose.yml`.
 
 **SonarQube takes forever to come up.**
 First boot does Elasticsearch index initialisation; expect 2–3 minutes on
@@ -194,8 +202,8 @@ To trip it on purpose:
    obvious security hotspot, e.g. `eval(request.args.get("x"))` in a new route.
 2. Commit, push, trigger the `demo` job.
 3. The `Quality Gate` stage will fail; the `Build Image` stage never runs.
-4. Drop the demo branch (`git checkout main && git branch -D <branch>`) once
-   you've seen the red build.
+4. Drop the demo branch when you've seen the red build (`git checkout main`,
+   then `git branch -d <branch>` — or `-D` if it has unmerged commits).
 
 ## License
 

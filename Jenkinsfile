@@ -80,24 +80,10 @@ pipeline {
             }
         }
 
-        // Publish stage left commented out by design — the demo is self-contained
-        // and does not push to an external registry.
-        //
-        // stage('Publish Image') {
-        //     when { branch 'main' }
-        //     steps {
-        //         withCredentials([usernamePassword(
-        //             credentialsId: 'registry-creds',
-        //             usernameVariable: 'REG_USER',
-        //             passwordVariable: 'REG_PASS')]) {
-        //             sh '''
-        //                 echo "$REG_PASS" | docker login -u "$REG_USER" --password-stdin
-        //                 docker tag  ${IMAGE_NAME}:${IMAGE_TAG} ${REG_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-        //                 docker push ${REG_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-        //             '''
-        //         }
-        //     }
-        // }
+        // Publish stage left out by design — the demo is self-contained and
+        // does not push to an external registry. Add a stage that uses
+        // `docker.withRegistry()` (declarative-pipeline plugin) and a
+        // `usernamePassword` credential when wiring up a real registry.
     }
 
     post {
