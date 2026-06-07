@@ -53,7 +53,7 @@ flowchart LR
 ```bash
 git clone https://github.com/NoobCoder1209/Jenkins-Docker-Sonarqube.git
 cd Jenkins-Docker-Sonarqube
-docker compose up -d --build      # ~3 min on first boot (Sonar + plugin install)
+docker compose up -d --build      # ~3–4 min on first boot (Sonar 26 + plugin install)
 ```
 
 Wait until all services are healthy:
@@ -167,8 +167,9 @@ Edit the `ports:` mappings in `docker-compose.yml` to a free host port, e.g.
 `scripts/bootstrap-sonar-webhook.sh` if you also remap Jenkins.
 
 **SonarQube takes forever to come up.**
-First boot does Elasticsearch index initialisation; expect 60–120 s. Tail with
-`docker compose logs -f sonarqube` and wait for `SonarQube is operational`.
+First boot does Elasticsearch index initialisation; expect 2–3 minutes on
+SonarQube 26.x community. Tail with `docker compose logs -f sonarqube` and
+wait for `SonarQube is operational`.
 
 **Reset everything and start fresh.**
 `docker compose down -v` wipes the named volumes. `docker compose up -d --build`

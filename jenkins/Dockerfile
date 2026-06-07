@@ -8,6 +8,9 @@ USER root
 #
 # Note: Debian's `docker.io` package ships dockerd but NOT the `docker` CLI.
 # The CLI lives in `docker-cli`, which is what `docker build` actually needs.
+# `docker-cli` is a binary package on Debian trixie+ (jenkins/jenkins:lts as of
+# late 2025); on older bookworm-based images, install `docker.io` and use the
+# `docker` symlink that ships with that package instead.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         docker-cli \
