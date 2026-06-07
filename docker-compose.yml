@@ -82,7 +82,7 @@ services:
     environment:
       JAVA_OPTS: -Djenkins.install.runSetupWizard=false
       CASC_JENKINS_CONFIG: /usr/share/jenkins/ref/casc_configs/jenkins.yaml
-      JENKINS_ADMIN_PASSWORD: admin                                   # demo-only
+      JENKINS_ADMIN_PASSWORD: ${JENKINS_ADMIN_PASSWORD:-admin}        # demo-only; override via .env
       SONARQUBE_TOKEN: ${SONARQUBE_TOKEN:-changeme}                   # generated from the SonarQube UI; see README
       GIT_REPO_URL: ${GIT_REPO_URL:-https://github.com/NoobCoder1209/Jenkins-Docker-Sonarqube.git}
     volumes:
@@ -94,8 +94,10 @@ services:
     healthcheck:
       # /manage redirects (302) once Jenkins is fully up and JCasC has loaded.
       # /login 200s on the Jetty error page even when JCasC failed to apply,
-      # which is too forgiving for a healthcheck.
-      test: ["CMD-SHELL", "curl -fsSL -o /dev/null http://localhost:8080/login && curl -fsS -o /dev/null -w '%{http_code}' http://localhost:8080/manage | grep -qE '^(200|302|403)$' || exit 1"]
+      # which is too forgiving for a healthcheck. 200 covers anonymous read,
+      # 302 covers the auth redirect — 403 is excluded because it indicates
+      # broken auth rather than a healthy instance.
+      test: ["CMD-SHELL", "curl -fsSL -o /dev/null http://localhost:8080/login && curl -fsS -o /dev/null -w '%{http_code}' http://localhost:8080/manage | grep -qE '^(200|302)$' || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 20
