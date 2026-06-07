@@ -30,13 +30,32 @@ done
 echo "[bootstrap] SonarQube is UP."
 
 # Idempotency: if a webhook with this name already exists, exit 0.
-existing=$(curl -fsS -u "${AUTH}" "${SONARQUBE_URL}/api/webhooks/list" 2>/dev/null \
-    | grep -c "\"name\":\"${WEBHOOK_NAME}\"" || true)
+# A 401 here means the admin password has been rotated (almost certainly via the
+# UI on a prior boot) and the persisted Sonar volume already has the webhook —
+# treat that as "nothing to do" rather than failing the bootstrap container.
+list_status=$(curl -s -o /tmp/webhook_list.json -w '%{http_code}' \
+    -u "${AUTH}" "${SONARQUBE_URL}/api/webhooks/list")
 
-if [ "${existing}" -gt 0 ]; then
-    echo "[bootstrap] webhook '${WEBHOOK_NAME}' already exists — nothing to do."
-    exit 0
-fi
+case "${list_status}" in
+    200)
+        if grep -q "\"name\":\"${WEBHOOK_NAME}\"" /tmp/webhook_list.json; then
+            echo "[bootstrap] webhook '${WEBHOOK_NAME}' already exists — nothing to do."
+            exit 0
+        fi
+        ;;
+    401)
+        echo "[bootstrap] 401 on /api/webhooks/list — admin password has likely been rotated."
+        echo "[bootstrap] assuming the webhook was provisioned on a prior boot. Skipping."
+        echo "[bootstrap] If the webhook is missing, set SONARQUBE_ADMIN_PASSWORD in your .env"
+        echo "[bootstrap] and re-run: docker compose run --rm bootstrap"
+        exit 0
+        ;;
+    *)
+        echo "[bootstrap] unexpected status ${list_status} from /api/webhooks/list" >&2
+        cat /tmp/webhook_list.json >&2 || true
+        exit 1
+        ;;
+esac
 
 echo "[bootstrap] creating webhook '${WEBHOOK_NAME}' -> ${JENKINS_WEBHOOK_URL}"
 curl -fsS -u "${AUTH}" -X POST "${SONARQUBE_URL}/api/webhooks/create" \

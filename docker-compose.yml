@@ -87,7 +87,10 @@ services:
       - "8080:8080"
       - "50000:50000"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/login >/dev/null || exit 1"]
+      # /manage redirects (302) once Jenkins is fully up and JCasC has loaded.
+      # /login 200s on the Jetty error page even when JCasC failed to apply,
+      # which is too forgiving for a healthcheck.
+      test: ["CMD-SHELL", "curl -fsSL -o /dev/null http://localhost:8080/login && curl -fsS -o /dev/null -w '%{http_code}' http://localhost:8080/manage | grep -qE '^(200|302|403)$' || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 20

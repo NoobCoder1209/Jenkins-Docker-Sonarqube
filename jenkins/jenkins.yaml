@@ -31,6 +31,8 @@ credentials:
 
 unclassified:
   location:
+    # Intra-network URL is fine for inter-service traffic (Sonar webhook).
+    # The README points humans at http://localhost:8080/ separately.
     url: "http://jenkins:8080/"
     adminAddress: "admin@example.com"
   sonarGlobalConfiguration:

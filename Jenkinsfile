@@ -15,7 +15,9 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'jenkins-docker-sonarqube-demo'
-        IMAGE_TAG  = "${env.BUILD_NUMBER}"
+        // Combine the Jenkins build counter with the short git SHA so tags
+        // stay distinct across volume wipes (BUILD_NUMBER resets to 1).
+        IMAGE_TAG  = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'unknown'}"
         // SONAR_HOST_URL and SONAR_AUTH_TOKEN are injected by withSonarQubeEnv.
     }
 
