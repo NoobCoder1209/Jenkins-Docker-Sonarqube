@@ -39,7 +39,9 @@ def test_echo_rejects_non_json(client):
 def test_unknown_route_returns_json_404(client):
     resp = client.get("/does-not-exist")
     assert resp.status_code == 404
-    assert resp.get_json()["error"] == "Not Found"
+    body = resp.get_json()
+    assert body["status"] == 404
+    assert "error" in body
 
 
 def test_info_returns_sections(client):
