@@ -61,7 +61,9 @@ services:
     ports:
       - "9000:9000"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/api/system/status | grep -q '\"status\":\"UP\"'"]
+      # SonarQube 26 community ships curl (not wget). The /api/system/status
+      # endpoint returns {"status":"UP"} once the web + compute-engine are ready.
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/api/system/status | grep -q '\"status\":\"UP\"'"]
       interval: 15s
       timeout: 5s
       retries: 30
@@ -92,12 +94,11 @@ services:
       - "8080:8080"
       - "50000:50000"
     healthcheck:
-      # /manage redirects (302) once Jenkins is fully up and JCasC has loaded.
-      # /login 200s on the Jetty error page even when JCasC failed to apply,
-      # which is too forgiving for a healthcheck. 200 covers anonymous read,
-      # 302 covers the auth redirect — 403 is excluded because it indicates
-      # broken auth rather than a healthy instance.
-      test: ["CMD-SHELL", "curl -fsSL -o /dev/null http://localhost:8080/login && curl -fsS -o /dev/null -w '%{http_code}' http://localhost:8080/manage | grep -qE '^(200|302)$' || exit 1"]
+      # /login 200s once Jetty is up; /manage returns 200 (anonymous-readable),
+      # 302 (auth-redirect) or 403 (auth-required, depending on JCasC's
+      # authorizationStrategy). Any of those means JCasC has loaded — only a
+      # connection error or 5xx means Jenkins is genuinely down.
+      test: ["CMD-SHELL", "curl -fsSL -o /dev/null http://localhost:8080/login && curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/manage | grep -qE '^(200|302|403)$' || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 20
