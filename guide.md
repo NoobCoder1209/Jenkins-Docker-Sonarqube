@@ -129,7 +129,7 @@ rm -f .env
 │   ├── models.py               # Pydantic request schemas (EchoRequest)
 │   └── healthcheck.py          # Returns {"status":"ok"} for /health
 │
-├── tests/                      # 9 pytest cases, ~97 % coverage on app/
+├── tests/                      # pytest suite, high coverage on app/
 │   ├── __init__.py             # Empty package marker (load-bearing)
 │   ├── conftest.py             # Flask test-client fixture
 │   ├── test_routes.py          # Happy path + 400 + 404 contract checks
@@ -193,7 +193,7 @@ sensible demo-only default baked into `docker-compose.yml`. The variables you
 Example `.env`:
 
 ```bash
-SONARQUBE_TOKEN=squ_4f7b5250f393ad7e0f9d66976c77d13013d720aa
+SONARQUBE_TOKEN=squ_REPLACE_WITH_YOUR_TOKEN_FROM_THE_SONAR_UI
 SONARQUBE_ADMIN_PASSWORD=ChangedOnFirstLogin!
 ```
 
@@ -211,21 +211,17 @@ curl -s -u admin:admin 'http://localhost:8080/job/demo/lastBuild/api/json' \
     | python3 -c "import sys,json; print(json.load(sys.stdin).get('result'))"
 # Expect: SUCCESS
 
-# B. All 9 stages individually green. (Output: stage name, status, duration.)
+# B. All stages individually green. (Output: stage name, status, duration.)
 curl -s -u admin:admin 'http://localhost:8080/job/demo/lastBuild/wfapi/describe' \
-    | python3 -c "import sys,json; d=json.load(sys.stdin); \
-[print(f\"  {s['name']:30s} {s['status']:10s} {s.get('durationMillis',0)/1000:.1f}s\") \
- for s in d.get('stages',[])]"
-# Expect: SUCCESS on every line:
-#   Declarative: Checkout SCM   SUCCESS   ~5s
-#   Checkout                    SUCCESS   <1s
-#   Setup Python                SUCCESS   ~30s
-#   Lint                        SUCCESS   <1s
-#   Test                        SUCCESS   <1s
-#   SonarQube Analysis          SUCCESS   ~9s
-#   Quality Gate                SUCCESS   ~3s
-#   Build Image                 SUCCESS   ~4-22s (depends on Docker layer cache)
-#   Declarative: Post Actions   SUCCESS   <1s
+    | python3 -c "
+import sys, json
+for s in json.load(sys.stdin).get('stages', []):
+    print(f\"  {s['name']:30s} {s['status']:10s} {s.get('durationMillis',0)/1000:.1f}s\")
+"
+# Expect: SUCCESS on every line. Stage timings vary widely between runs:
+# Setup Python is ~10 s on a warm pip cache, ~30+ s cold; Build Image is
+# ~4 s on a warm Docker layer cache, ~25 s cold. Treat the per-stage
+# numbers as orders of magnitude, not benchmarks.
 
 # C. SonarQube received the analysis and returned Passed.
 curl -s -u admin:admin \
@@ -290,9 +286,11 @@ with:
 docker.io \
 ```
 
-then `docker compose up -d --build jenkins`. The `docker.io` package on
-bookworm includes both the daemon and the client, even though on trixie+ the
-client is split out into `docker-cli`.
+then `docker compose up -d --build jenkins`. (Note: the `jenkins/Dockerfile`
+comment says `docker.io` doesn't ship the `docker` CLI. That was true on some
+older Debian releases but is no longer accurate for current bookworm — the
+`docker.io` package now bundles both daemon and client. We still prefer
+`docker-cli` on trixie+ because it ships a more recent client.)
 
 ### "SonarQube container shows (unhealthy) but the UI works"
 
